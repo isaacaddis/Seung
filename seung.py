@@ -2,6 +2,8 @@ import cv2
 import numpy as np
 import argparse
 import imutils
+import time
+from imutils.object_detection import non_max_suppression
 import pytesseract
 
 parser = argparse.ArgumentParser()
@@ -14,6 +16,39 @@ parser.add_argument("-e", "--height",type=str, help="Height of resized image. Mu
 args = vars(parser.parse_args())
 
 image = cv2.imread(args["image"])
-image = imutils.resize(image, height = 500)
 image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 gray = cv2.GaussianBlur(gray,(5,5),5)
+
+if args["width"] and args["height"] is not None:
+    (newW, newH) = (args["width"], args["height"])
+    rW = W/float(newW)
+    rH = H/float(newH)
+    image = cv2.resize(image, (newW, newH))
+else:
+    (newW, newH) = (320,320)
+    rW = W/float(newW)
+    rH = H/float(newH)
+    image = cv2.resize(image, (newW, newH))
+layerNames = [
+            "feature_fusion/Conv_7/Sigmoid",
+                "feature_fusion/concat_3"]
+print("[INFO] Loading EAST detector")
+text_dect = cv2.dnn.readNet(args["east"])
+startTime = time.time()
+text_dect.setInput(cv2.dnn.blobFromImage(image,1.0,(W,H), 123.68, 116.78, 103.94),swapRB=True, crop=False)
+(scores, geometry) = net.forward(layerNames)
+endTime = time.time()
+print("[INFO] Finished text detection in {::.6f} seconds".format(endTime-startTime))
+
+(numRows, numCols) = scores.shape[2:4]
+rects = []
+confidences = []
+
+for y in range(0, numRows):
+    scoresData = scores[0,0,y]
+    xData0 = geometry[0,0,y]
+    xData1 = geometry[0,1,y]
+    xData2 = geometry[0,2,y]
+    xData3 = geometry[0,3,y]
+    anglesData = geometry[0,4,y]
+
