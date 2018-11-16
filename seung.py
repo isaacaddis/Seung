@@ -67,11 +67,13 @@ for y in range(0, rows):
 		confidences.append(scoresData[x])
 boxes = non_max_suppression(np.array(rects), probs=confidences)
 for (startX, startY, endX, endY) in boxes:
-	startX = int(startX * rW)
-	startY = int(startY * rH)
-	endX = int(endX * rW)
-	endY = int(endY * rH)
-	cv2.rectangle(orig, (startX, startY), (endX, endY), (0, 255, 0), 2)
+    startX = int(startX * rW)
+    startY = int(startY * rH)
+    endX = int(endX * rW)
+    endY = int(endY * rH)
+    focus = orig[startY:endY, startX:endX]
+    cv2.rectangle(orig, (startX, startY), (endX, endY), (0, 255, 0), 2)
+    #cv2.imshow(str(time.time()), focus)
 cv2.imshow("Text Detect",orig)
 cv2.waitKey(0)
 
