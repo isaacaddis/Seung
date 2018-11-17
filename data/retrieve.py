@@ -1,4 +1,4 @@
-import os.path as ops
+import os.path
 from typing import Tuple, Union
 import numpy as np
 import cv2
@@ -46,3 +46,50 @@ class TextDataset(data_util.Dataset):
         self.__batch_counter = 0
         self._epoch_images, self._epoch_labels, self._epoch_imagenames = self.shuffle_image_labels(self._epoch_images, self._epoch_labels, self._epoch_imagenames)
         return
+class TextDataProvider(object):
+    def __init__(self, dataset_dir, annotation_name, input_size: Tuple[int, int], validation_set=None, validation_split=None, shuffle=None, normalization=None):
+        # More initializations
+        self._input_size = 0
+        self._seq_length = int(input_size[0]/4)
+        self._dataset = dataset_dir
+        self._validation_split = validation_split
+        self._shuffle = shuffle
+        self._normalization = normalization
+        self._train = os.path.join(self._dataset, 'Train')
+        self._test = os.path.join(self._dataset, 'Test')
+
+        assert os.path.exists(self._dataset)
+
+        def build_dataset(dir:str, split: float=None) -> Tuple[TextDataset, Union[TextDataset, None]]:
+            annot = os.path.join(dir, annotation_name)
+            assert os.path.exists(annot)
+            with open(annot, 'r', encoding='utf-8') as fd:
+                print("Reading Labels in {}".format(annot), end = '', flush=True)
+                info = np.array(list(filter(lambda x: len(x) == 2, (line.strip().split(maxsplit=1) for line in fd.readLines()))))
+                images = []
+                for i in info[:,0]:
+                    img = cv2.imread(os.path.join(dir, i)
+                    assert img is not None
+                    images.append(cv2.resize(img, tuple(self.__input_size)))
+                images = np.array(images)
+                print("Completed image pre-processing and Numpy casting")
+                labels = np.array([x[self.__seq_length] for x in info[:,1])
+                image_names = np.array([os.path.basename(name) for name in info[:,1])
+                print("Done")
+            if split is None:
+                return TextDataset(images, labels, image_names, shuffle=shuffle, normalization = normalization), None
+            else:
+                split_idx = int(images.shape[0]*(1.0-split))
+                return TextDataset(images[:split_idx], labels[:split_idx], image_names[:split_idx], shuffle=shuffle, normalization=normalization), \
+                        TextDataset(images[split_idx:], labels[split_idx:], image_names[split_idx:],
+                                                               shuffle=shuffle, normalization=normalization)
+        self.test, _ = build_dataset(self._test)
+        if validation_set is None:
+            self.train, _ = build_dataset(self._train)
+        else:
+            if validation_split = None:
+                self.validation = self.test
+    def __str__(self):
+        return 'Dataset {:s} contains {:d} training, {:d} validation, and {:d} testing images'.\
+                format(self.dataset, self.train.num_examples, self.validation.num_examples, self.test.num_examples)
+
